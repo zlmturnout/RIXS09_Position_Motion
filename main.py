@@ -1,7 +1,7 @@
 import PySide6,sys
 from PySide6.QtWidgets import QWidget, QApplication, QMainWindow
     
-from BPM_plot_new import *
+from RIXS_BeamSize_plot import *
 
 """Main entrance  
 
@@ -21,6 +21,6 @@ pause
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    win = BPMMotionPlot()
+    win = PMCMotionPlot()
     win.show()
     sys.exit(app.exec())

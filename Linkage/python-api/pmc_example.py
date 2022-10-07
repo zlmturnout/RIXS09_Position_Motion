@@ -28,15 +28,18 @@ time.sleep(1)
 #返回值：各频道位置的配列
 print(c.get_pos('0'))
 time.sleep(1)
-
-while(1):
+i=1
+while i>0:
 	print(c.get_pos16())
 	time.sleep(1)
 	print(c.get_status())
 	time.sleep(1)
 	print(c.send_recv('VER?'))
 	time.sleep(1)
+	print(c.get_pos('3'))
+	c.set_pos('3','-943')
 	c.send('LOC')
 	time.sleep(1)
 	c.send('REM')
 	time.sleep(1)
+	i-=1
