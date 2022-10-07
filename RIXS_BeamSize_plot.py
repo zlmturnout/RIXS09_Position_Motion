@@ -82,7 +82,7 @@ class PMCMotionPlot(QMainWindow, Ui_MainWindow):
     def __init__(self, parent=None):
         super(PMCMotionPlot, self).__init__(parent)
         self.setupUi(self)
-        self.setWindowTitle(' BPM motion and PD plot')
+        self.setWindowTitle('RIXS@09_BeamSpot_plot')
         self.__ini_output()
         self.__init_plot__()
         self.__ini_pAmeter__()
@@ -726,7 +726,7 @@ class PMCMotionPlot(QMainWindow, Ui_MainWindow):
             timestamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
             self._time_stamp.append(timestamp)
             # plot scan data
-            self.plot_scan_data(self._plot_ch_list, self._plot_pAmeter_list, f'{self.scan_channel_name}', 'Currents(pA)')
+            self.plot_scan_data(self._plot_ch_list, self._plot_pAmeter_list, f'{self.scan_channel_name}', 'Currents(A)')
             if self._scan_N < self._scan_list_num:
                 self.scan_start_sig.emit(['OK', self._scan_N])
                 self.set_progress_Bar(int(100*self._scan_N/self._scan_list_num))
