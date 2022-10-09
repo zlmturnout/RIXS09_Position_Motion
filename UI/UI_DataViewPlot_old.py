@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'UI_DataViewPlot.ui'
+## Form generated from reading UI file 'UI_DataViewPlot_old.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.3.0
 ##
@@ -85,6 +85,7 @@ class Ui_Dialog(object):
         font1.setBold(True)
         self.Import_btn.setFont(font1)
         self.Import_btn.setStyleSheet(u"background-color: rgb(33, 190, 193);\n"
+"border-size:5px;\n"
 "selection-color: rgb(255, 85, 127);\n"
 "color: rgb(255, 255, 255);")
 
@@ -97,6 +98,7 @@ class Ui_Dialog(object):
         self.Export_btn.setMinimumSize(QSize(120, 40))
         self.Export_btn.setFont(font1)
         self.Export_btn.setStyleSheet(u"background-color: rgb(33, 190, 193);\n"
+"border-size:5px;\n"
 "selection-color: rgb(255, 85, 127);\n"
 "color: rgb(255, 255, 255);")
 
@@ -194,6 +196,7 @@ class Ui_Dialog(object):
         self.Plot_data_btn.setMinimumSize(QSize(125, 60))
         self.Plot_data_btn.setFont(font1)
         self.Plot_data_btn.setStyleSheet(u"background-color: rgb(33, 190, 193);\n"
+"border-size:5px;\n"
 "selection-color: rgb(255, 85, 127);\n"
 "color: rgb(255, 255, 255);")
 
@@ -206,6 +209,7 @@ class Ui_Dialog(object):
         self.Update_data_btn.setMinimumSize(QSize(125, 60))
         self.Update_data_btn.setFont(font1)
         self.Update_data_btn.setStyleSheet(u"background-color: rgb(33, 190, 193);\n"
+"border-size:5px;\n"
 "selection-color: rgb(255, 85, 127);\n"
 "color: rgb(255, 255, 255);")
 
@@ -214,18 +218,6 @@ class Ui_Dialog(object):
         self.verticalSpacer = QSpacerItem(20, 238, QSizePolicy.Minimum, QSizePolicy.Expanding)
 
         self.verticalLayout.addItem(self.verticalSpacer)
-
-        self.Derivative_btn = QPushButton(Dialog)
-        self.Derivative_btn.setObjectName(u"Derivative_btn")
-        sizePolicy.setHeightForWidth(self.Derivative_btn.sizePolicy().hasHeightForWidth())
-        self.Derivative_btn.setSizePolicy(sizePolicy)
-        self.Derivative_btn.setMinimumSize(QSize(125, 60))
-        self.Derivative_btn.setFont(font1)
-        self.Derivative_btn.setStyleSheet(u"background-color: rgb(33, 190, 193);\n"
-"selection-color: rgb(255, 85, 127);\n"
-"color: rgb(255, 255, 255);")
-
-        self.verticalLayout.addWidget(self.Derivative_btn)
 
 
         self.horizontalLayout_3.addLayout(self.verticalLayout)
@@ -257,6 +249,7 @@ class Ui_Dialog(object):
         self.Close_btn.setMinimumSize(QSize(90, 40))
         self.Close_btn.setFont(font1)
         self.Close_btn.setStyleSheet(u"background-color: rgb(33, 190, 193);\n"
+"border-size:5px;\n"
 "selection-color: rgb(255, 85, 127);\n"
 "color: rgb(255, 255, 255);")
 
@@ -283,7 +276,6 @@ class Ui_Dialog(object):
         self.label.setText(QCoreApplication.translate("Dialog", u"Y axis", None))
         self.Plot_data_btn.setText(QCoreApplication.translate("Dialog", u"Plot data", None))
         self.Update_data_btn.setText(QCoreApplication.translate("Dialog", u"Update data", None))
-        self.Derivative_btn.setText(QCoreApplication.translate("Dialog", u" Derivative", None))
         self.Plot_box.setTitle(QCoreApplication.translate("Dialog", u"Plot", None))
         self.Close_btn.setText(QCoreApplication.translate("Dialog", u"Close", None))
     # retranslateUi

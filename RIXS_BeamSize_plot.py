@@ -439,7 +439,7 @@ class PMCMotionPlot(QMainWindow, Ui_MainWindow):
             print('Start monitoring pAmeter')
             self._pA_start_t = time.time()
             try:
-                self.MT_pAmeter6514 = Keithley6514Com(port=self.Selected_port, func='currents', points=5,full_time=100,keep_on=1)
+                self.MT_pAmeter6514 = Keithley6514Com(port=self.Selected_port, func='currents', points=5,full_time=1000,keep_on=1)
                 self.MT_pAmeter6514.data_sig.connect(self.get_pAmonitor_data)
                 status = self.MT_pAmeter6514.open_port(self.Selected_port)
                 # initialize keithley 6514 for current measurement
@@ -540,13 +540,29 @@ class PMCMotionPlot(QMainWindow, Ui_MainWindow):
         self.scan_channel=pmc_channels.get(self.Channel_cbx.currentText(),0)
         self.scan_channel_name=self.Channel_cbx.currentText()
         self.Channel_cbx.currentIndexChanged['int'].connect(self.set_scan_channel)
-        self.ch_pos_lcd={'Ch3_X':self.lcd_X_pos,'Ch4_Y':self.lcd_Y_pos,'Ch5_Z':self.lcd_Z_pos}
+        self.ch_pos_lcd_dict={'Ch3_X':self.lcd_X_pos,'Ch4_Y':self.lcd_Y_pos,'Ch5_Z':self.lcd_Z_pos}
         self.ch_values_dict={'Ch3_X':0,'Ch4_Y':0,'Ch5_Z':0}
-    
+        self.step_X_size=1
+        self.step_Y_size=1
+        self.step_Z_size=1
+        self.Step_X_pos.valueChanged.connect(self.get_X_step)
+        self.Step_Y_pos.valueChanged.connect(self.get_Y_step)
+        self.Step_Z_pos.valueChanged.connect(self.get_Z_step)
+        # for ch postion plot
+        self.ch_valuelist_dict={'Ch3_X':[],'Ch4_Y':[],'Ch5_Z':[]}
+        self.ch_numlist_dict={'Ch3_X':[],'Ch4_Y':[],'Ch5_Z':[]}
+        self.ch_changeN_dict={'Ch3_X':0,'Ch4_Y':0,'Ch5_Z':0}
+        self.ch_figures_dict={'Ch3_X':self.X_pos_figure,'Ch4_Y':self.Y_pos_figure,'Ch5_Z':self.Z_pos_figure}
+        # for ch pos move flag
+        self.X_pos_move_flag=False
+        self.Y_pos_move_flag=False
+        self.Z_pos_move_flag=False
+
+
     @Slot()
     def on_Connect_pmc_btn_clicked(self):
         self.show_PMC_status()
-        self.update_ch_values()
+        self.updateall_ch_values()
 
     @log_exceptions(log_func=logger.error)
     @Slot(int)
@@ -558,18 +574,226 @@ class PMCMotionPlot(QMainWindow, Ui_MainWindow):
         self.Channel_tabs.setCurrentIndex(n)
         self.scan_channel_name=self.Channel_cbx.currentText()
         self.scan_channel=pmc_channels.get(self.Channel_cbx.currentText(),1)
-        self.update_ch_values()
+        self.updateall_ch_values()
 
-    def update_ch_values(self):
+    def updateall_ch_values(self):
         if self.pmc_motor.connect_status:
-            ch_values=self.pmc_motor.get_pos16()
-            self.ch_pos_lcd['Ch3_X'].display(ch_values[3])
-            self.ch_values_dict['Ch3_X']=ch_values[3]
-            self.ch_pos_lcd['Ch4_Y'].display(ch_values[4])
-            self.ch_values_dict['Ch4_Y']=ch_values[4]
-            self.ch_pos_lcd['Ch5_Z'].display(ch_values[5])
-            self.ch_values_dict['Ch5_Z']=ch_values[5]
+            # get value of all 16 channels
+            self.update_ch_value('Ch3_X')
+            self.update_ch_value('Ch4_Y')
+            self.update_ch_value('Ch5_Z')
             
+    def update_ch_value(self,ch_name:str):
+        """update the ch_name value and plot
+
+        Args:
+            ch_name (str): _description_
+        """
+        ch_num=pmc_channels.get(ch_name)
+        print(f'update channel:{ch_num} with name:{ch_name}')
+        if isinstance(ch_num,int):
+            # get the channel value
+            ch_value=self.pmc_motor.get_pos(str(ch_num))
+            if ch_value:
+                self.ch_pos_lcd_dict[ch_name].display(ch_value)
+                self.ch_values_dict[ch_name]=ch_value
+                self.ch_changeN_dict[ch_name]+=1
+                self.ch_valuelist_dict[ch_name].append(ch_value)
+                self.ch_numlist_dict[ch_name].append(self.ch_changeN_dict[ch_name])
+                # display on lcd and plot
+                self.ch_pos_lcd_dict[ch_name].display(ch_value)
+                self.plot_ch_pos(self.ch_figures_dict[ch_name],self.ch_numlist_dict[ch_name],self.ch_valuelist_dict[ch_name])
+                
+
+
+    def plot_ch_pos(self,ch_figure, x_num_list, x_pos):
+        """
+        plot Grating position based on list: [x_pos] and change list [x_num_list]
+        :param x_pos:
+        :param x_num_list:
+        :return:
+        """
+        if x_pos and x_num_list:
+            if len(x_pos) > 100:
+                x_pos = x_pos[-100:]
+                x_num_list = x_num_list[-100:]
+            # print(x_pos, x_num_list)
+            ch_figure.axes.cla()
+            ch_figure.axes.plot(x_num_list, x_pos, '-oc', markersize=1)
+            ch_figure.draw()
+
+    # for step size
+    @Slot()
+    def get_X_step(self):
+        """
+        get Ch3 X step size (um)
+        :return:
+        """
+        self.step_X_size = int(self.Step_X_pos.text().strip(' um'))
+        print(f'set ch3 X step size to: {self.step_X_size}')
+    
+    @Slot()
+    def get_Y_step(self):
+        """
+        get Ch3 X step size (um)
+        :return:
+        """
+        self.step_Y_size = int(self.Step_Y_pos.text().strip(' um'))
+        print(f'set ch4 Y step size to: {self.step_Y_size}')
+
+    @Slot()
+    def get_Z_step(self):
+        """
+        get Ch3 X step size (um)
+        :return:
+        """
+        self.step_Z_size = int(self.Step_Z_pos.text().strip(' um'))
+        print(f'set ch5 Z step size to: {self.step_Z_size}')
+
+    # for Ch3_X step move
+    @Slot()
+    def on_X_pos_left_clicked(self):
+        """left clicked X pos move to current ch_value-ch_step
+        """
+        if self.pmc_motor.connect_status and not self.X_pos_move_flag:
+            current_X_pos=self.ch_values_dict['Ch3_X']
+            new_pos=current_X_pos-self.step_X_size
+            ch_num=ch_num=pmc_channels.get("Ch3_X")
+            try:
+                self.pmc_XLsetQThread = pmcSetThread(self.pmc_motor,ch_num, pos=new_pos,num=1,wait=100)
+                self.pmc_XLsetQThread.done_signal.connect(self.pmcX_set_done)
+                self.pmc_XLsetQThread.start()
+                self.X_pos_move_flag=True
+            except Exception as e:
+                print(e)
+                logger.error(traceback.format_exc() + str(e))
+        else:
+            self.raise_info('pmc not connected or last step not finished , will not move')
+
+    @Slot()
+    def on_X_pos_right_clicked(self):
+        """right clicked X pos move to current ch_value+ch_step
+        """
+        if self.pmc_motor.connect_status and not self.X_pos_move_flag:
+            current_X_pos=self.ch_values_dict['Ch3_X']
+            new_pos=current_X_pos+self.step_X_size
+            ch_num=ch_num=pmc_channels.get("Ch3_X")
+            try:
+                self.pmc_XRsetQThread = pmcSetThread(self.pmc_motor,ch_num, pos=new_pos,num=1,wait=100)
+                self.pmc_XRsetQThread.done_signal.connect(self.pmcX_set_done)
+                self.pmc_XRsetQThread.start()
+                self.X_pos_move_flag=True
+            except Exception as e:
+                print(e)
+                logger.error(traceback.format_exc() + str(e))
+        else:
+            self.raise_info('pmc not connected or last step not finished , will not move')
+
+    @Slot(list)
+    def pmcX_set_done(self,resp:list):
+        """ get the pmcX set info
+        """
+        self.X_pos_move_flag=False
+        print(f'{resp[-1]}\npos_now: {resp[0]} with set_pos: {resp[1]}')
+        self.update_ch_value('Ch3_X')
+
+    # for Ch4_Y step move
+    @Slot()
+    def on_Y_pos_left_clicked(self):
+        """left clicked Y pos move to current ch_value-ch_step
+        """
+        if self.pmc_motor.connect_status and not self.Y_pos_move_flag:
+            current_Y_pos=self.ch_values_dict['Ch4_Y']
+            new_pos=current_Y_pos-self.step_Y_size
+            ch_num=ch_num=pmc_channels.get("Ch4_Y")
+            try:
+                self.pmc_YLsetQThread = pmcSetThread(self.pmc_motor,ch_num, pos=new_pos,num=1,wait=100)
+                self.pmc_YLsetQThread.done_signal.connect(self.pmcY_set_done)
+                self.pmc_YLsetQThread.start()
+                self.Y_pos_move_flag=True
+            except Exception as e:
+                print(e)
+                logger.error(traceback.format_exc() + str(e))
+        else:
+            self.raise_info('pmc not connected or last step not finished , will not move')
+
+    
+    @Slot()
+    def on_Y_pos_right_clicked(self):
+        """right clicked Y pos move to current ch_value+ch_step
+        """
+        if self.pmc_motor.connect_status and not self.Y_pos_move_flag:
+            current_Y_pos=self.ch_values_dict['Ch4_Y']
+            new_pos=current_Y_pos+self.step_Y_size
+            ch_num=ch_num=pmc_channels.get("Ch4_Y")
+            try:
+                self.pmc_YRsetQThread = pmcSetThread(self.pmc_motor,ch_num, pos=new_pos,num=1,wait=100)
+                self.pmc_YRsetQThread.done_signal.connect(self.pmcY_set_done)
+                self.pmc_YRsetQThread.start()
+                self.Y_pos_move_flag=True
+            except Exception as e:
+                print(e)
+                logger.error(traceback.format_exc() + str(e))
+        else:
+            self.raise_info('pmc not connected or last step not finished , will not move')
+
+    @Slot(list)
+    def pmcY_set_done(self,resp:list):
+        """ get the pmcY set info
+        """
+        self.Y_pos_move_flag=False
+        print(f'{resp[-1]}\npos_now: {resp[0]} with set_pos: {resp[1]}')
+        self.update_ch_value('Ch4_Y')
+
+    # for Ch5_Z step move
+    @Slot()
+    def on_Z_pos_left_clicked(self):
+        """left clicked Y pos move to current ch_value-ch_step
+        """
+        if self.pmc_motor.connect_status and not self.Z_pos_move_flag:
+            current_Z_pos=self.ch_values_dict['Ch5_Z']
+            new_pos=current_Z_pos-self.step_Z_size
+            ch_num=ch_num=pmc_channels.get("Ch5_Z")
+            try:
+                self.pmc_ZLsetQThread = pmcSetThread(self.pmc_motor,ch_num, pos=new_pos,num=1,wait=100)
+                self.pmc_ZLsetQThread.done_signal.connect(self.pmcZ_set_done)
+                self.pmc_ZLsetQThread.start()
+                self.Z_pos_move_flag=True
+            except Exception as e:
+                print(e)
+                logger.error(traceback.format_exc() + str(e))
+        else:
+            self.raise_info('pmc not connected or last step not finished , will not move')
+
+    
+    @Slot()
+    def on_Z_pos_right_clicked(self):
+        """right clicked Z pos move to current ch_value+ch_step
+        """
+        if self.pmc_motor.connect_status and not self.Z_pos_move_flag:
+            current_Z_pos=self.ch_values_dict['Ch5_Z']
+            new_pos=current_Z_pos+self.step_Z_size
+            ch_num=ch_num=pmc_channels.get("Ch5_Z")
+            try:
+                self.pmc_ZRsetQThread = pmcSetThread(self.pmc_motor,ch_num, pos=new_pos,num=1,wait=100)
+                self.pmc_ZRsetQThread.done_signal.connect(self.pmcZ_set_done)
+                self.pmc_ZRsetQThread.start()
+                self.Y_pos_move_flag=True
+            except Exception as e:
+                print(e)
+                logger.error(traceback.format_exc() + str(e))
+        else:
+            self.raise_info('pmc not connected or last step not finished , will not move')
+
+    @Slot(list)
+    def pmcZ_set_done(self,resp:list):
+        """ get the pmcY set info
+        """
+        self.Z_pos_move_flag=False
+        print(f'{resp[-1]}\npos_now: {resp[0]} with set_pos: {resp[1]}')
+        self.update_ch_value('Ch5_Z')
+
+
     """
     end of the pmc X-Y-Z motor part 
     """
@@ -613,7 +837,7 @@ class PMCMotionPlot(QMainWindow, Ui_MainWindow):
         :return: scan range list
         """
         self.scan_channel_name=self.Channel_cbx.currentText()
-        self.update_ch_values()
+        self.updateall_ch_values()
         print(f'choose scan channel: {self.scan_channel_name}')
         input_info = f'scan channel: {self.scan_channel_name}\nCurrent value:\n{self.scan_channel_name}:' \
                     f'{self.ch_values_dict[self.scan_channel_name]}'
@@ -695,7 +919,7 @@ class PMCMotionPlot(QMainWindow, Ui_MainWindow):
     def start_ch_pA_set(self, cmd: list):
         if cmd[0] == 'OK':
             # set ch position
-            self.pmc_motor.set_pos(str(self.scan_ch_num),self._scan_list[self._scan_N])
+            #self.pmc_motor.set_pos(str(self.scan_ch_num),self._scan_list[self._scan_N])
             self.pmcsetQThread = pmcSetThread(self.pmc_motor,ch_num=self.scan_ch_num, pos=self._scan_list[self._scan_N],num=1)
             self.pmcsetQThread.done_signal.connect(self.pmc_set_done)
             self.pmcsetQThread.start()
@@ -745,6 +969,7 @@ class PMCMotionPlot(QMainWindow, Ui_MainWindow):
                 self.Done_time.setText(f'Finished at:{done_stamp}')
                 self._scan_pmc_ch_flag = 0
                 self._start_plot_flag = 0
+                self.updateall_ch_values()
 
 
     """
@@ -883,6 +1108,7 @@ class PMCMotionPlot(QMainWindow, Ui_MainWindow):
             folder = time.strftime('%Y-%m-%d', time.localtime())
             save_folder = creatPath(os.path.join(save_path, folder))
             self.usr_save_full_data(scan_data, path=save_folder, usr_define=1)
+            self.updateall_ch_values()
 
     @log_exceptions(log_func=logger.error)
     @Slot()
@@ -900,6 +1126,7 @@ class PMCMotionPlot(QMainWindow, Ui_MainWindow):
             scan_data = self.get_full_data()
             self.usr_save_full_data(scan_data, save_path, usr_define=1)
             self.clear_all_data()
+            self.updateall_ch_values()
         else:
             self.raise_warning('scan is on, can not clear')
 

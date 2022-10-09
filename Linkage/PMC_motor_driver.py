@@ -51,11 +51,15 @@ class pmc(object):
 
     def get_pos(self,ch:str):
         p = self.send_recv("PS?"+ch)
-        return int(p)
+        return int(p) if p else None
 
     def set_pos(self,ch:str,pos):
         #PS<ch><pos>
         self.send("PS" + ch + str(pos))
+    
+    def abs_move(self,ch:str,pos,backlash=True):
+        b="S" if backlash else "B"
+        self.send("ABS"+ch+b+str(pos))
 
     def get_status(self):
         p = self.send_recv(b'STS_16?')
@@ -75,13 +79,14 @@ class pmcSetThread(QThread):
     """
     done_signal = Signal(list)
 
-    def __init__(self, pmc:pmc, ch_num:int, pos:int, num: int = 0, parent=None):
+    def __init__(self, pmc:pmc, ch_num:int, pos:int, num: int = 0, wait=1000,parent=None):
         super(pmcSetThread,self).__init__(parent)
         self.pmc=pmc
         self.ch_num=ch_num
         self.target_pos=pos
         self.check_n=num
         self.set_flag=True
+        self.wait=wait
     
     def run(self):
         t0 = time.time()  # for time out
@@ -89,13 +94,14 @@ class pmcSetThread(QThread):
         if self.pmc.connect_status:
             cur_pos=self.pmc.get_pos(str(self.ch_num))
             self.msleep(100)
-            self.pmc.set_pos(str(self.ch_num),self.target_pos)
+            #self.pmc.set_pos(str(self.ch_num),self.target_pos)
+            self.pmc.abs_move(str(self.ch_num),self.target_pos)
             self.msleep(1000)
             time_out = 3.0+abs(cur_pos-self.target_pos)*0.2
             self.set_info = f'done with time out:{time_out}'
             while self.set_flag and time.time() - t0 < time_out:
                 new_pos=self.pmc.get_pos(str(self.ch_num))
-                if abs(new_pos-self.target_pos)<2:
+                if abs(new_pos-self.target_pos)<1:
                     self.msleep(200)
                     self.set_flag=False
                     self.set_info = 'done'
@@ -105,7 +111,7 @@ class pmcSetThread(QThread):
             print(f'set ch position done after: {time.time() - t0:.2f}s with timeout of {time_out}s')
             info = [new_pos, self.target_pos, self.ch_num, self.set_info]
             print(info)
-            self.msleep(200)
+            self.msleep(self.wait)
             self.done_signal.emit(info)
     
     def __del__(self):
@@ -131,5 +137,8 @@ if __name__=="__main__":
         print(c.ver())
         print(c.get_pos16())
         print(c.get_status())
+        ch5_value=c.get_pos('5')
+        print(f'ch5_value:{ch5_value}')
+        c.abs_move('5',pos=ch5_value-200,backlash=True)
     else:
         print(f'connect to {pmc_host}:{pmc_port} failed')
