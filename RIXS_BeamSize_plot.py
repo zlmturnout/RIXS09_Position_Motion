@@ -371,26 +371,27 @@ class PMCMotionPlot(QMainWindow, Ui_MainWindow):
         """
         if self.Port_cbx.currentText() and not self.pAmeter_connection:
             Selected_port = self.Port_cbx.currentText().split(':')[0]
-            # connect port
-            self.pAmeter6514 = Keithley6514Com(port=Selected_port, func='currents', points=5,full_time=100,keep_on=0)
-            status = self.pAmeter6514.open_port(Selected_port)
-            connection_msg = self.Port_cbx.currentText() + ':\n' + str(status)
-            if status == "OK":
-                self._msgbox = MyMsgBox(
-                    title="Connection msg", text="Connection to Electrometer6514 Success", details=connection_msg)
-                print(f'Electrometer6514 at {Selected_port}:connected')
-                self.Connect_pAmeter_btn.setEnabled(False)
-                self.Connect_pAmeter_btn.setText("Connected")
-                self.pAmeter_connection = True
-                self.Selected_port=Selected_port
-                self.pAmeter6514.close_port()
-            else: 
-                self.pAmeter6514=None
-                self._msgbox = MyMsgBox(
-                    title="Connection msg", text="Connection to Electrometer6514 Fail", details=connection_msg)
+            try:
+                pAmeter6514 = Keithley6514Com(port=Selected_port, func='currents', points=5,full_time=100,keep_on=0)
+                #status = self.pAmeter6514.open_port(Selected_port)
+                status = "OK"
+                connection_msg = self.Port_cbx.currentText() + ':\n' + str(status)
+                version=pAmeter6514.version
+            except Exception as e: 
+                pAmeter6514=None
+                self._msgbox = MyMsgBox(title="Connection msg", text="Connection to Electrometer6514 Fail", details=connection_msg+traceback.format_exc() + str(e))
+            else:
+                if status == "OK" and version:
+                    self._msgbox = MyMsgBox(title="Connection msg", text="Connection to Electrometer6514 Success", details=connection_msg)
+                    print(f'Electrometer6514 at {Selected_port}:connected')
+                    self.Connect_pAmeter_btn.setEnabled(False)
+                    self.Connect_pAmeter_btn.setText("Connected")
+                    self.pAmeter_connection = True
+                    self.Selected_port=Selected_port
+                #self.pAmeter6514.close_port()
             self._msgbox.show()
             self._status_timer.start(1000)
-            print(self.pAmeter6514)
+            #print(self.pAmeter6514)
 
     @log_exceptions(log_func=logger.error)
     @Slot()
@@ -441,8 +442,9 @@ class PMCMotionPlot(QMainWindow, Ui_MainWindow):
             try:
                 self.MT_pAmeter6514 = Keithley6514Com(port=self.Selected_port, func='currents', points=5,full_time=1000,keep_on=1)
                 self.MT_pAmeter6514.data_sig.connect(self.get_pAmonitor_data)
-                status = self.MT_pAmeter6514.open_port(self.Selected_port)
+                #status = self.MT_pAmeter6514.open_port(self.Selected_port)
                 # initialize keithley 6514 for current measurement
+                status='OK'
                 print(status)
                 if  status=='OK':
                     #self.ini_keithley6514_curr(nplc=5,points=10)
@@ -574,6 +576,7 @@ class PMCMotionPlot(QMainWindow, Ui_MainWindow):
         self.Channel_tabs.setCurrentIndex(n)
         self.scan_channel_name=self.Channel_cbx.currentText()
         self.scan_channel=pmc_channels.get(self.Channel_cbx.currentText(),1)
+        self._scan_range_set_flag=0
         self.updateall_ch_values()
 
     def updateall_ch_values(self):
@@ -604,8 +607,6 @@ class PMCMotionPlot(QMainWindow, Ui_MainWindow):
                 self.ch_pos_lcd_dict[ch_name].display(ch_value)
                 self.plot_ch_pos(self.ch_figures_dict[ch_name],self.ch_numlist_dict[ch_name],self.ch_valuelist_dict[ch_name])
                 
-
-
     def plot_ch_pos(self,ch_figure, x_num_list, x_pos):
         """
         plot Grating position based on list: [x_pos] and change list [x_num_list]
@@ -883,7 +884,7 @@ class PMCMotionPlot(QMainWindow, Ui_MainWindow):
             # scan range not set
             print('should set scan range first')
             self.raise_info('should set scan range first')
-        elif self._start_plot_flag == 1:
+        else:
             # scan is already on, can not start
             print('scan is already on, stop scan or wait!')
             self.raise_info('scan is already on, stop scan or wait!')
@@ -932,11 +933,12 @@ class PMCMotionPlot(QMainWindow, Ui_MainWindow):
         # start read pAmeter
         self.ch_pAmeter6514 = Keithley6514Com(port=self.Selected_port, func='currents', points=5,full_time=100,keep_on=0)
         self.ch_pAmeter6514.data_sig.connect(self.get_ch_pA_data)
-        status = self.ch_pAmeter6514.open_port(self.Selected_port)
+        #status = self.ch_pAmeter6514.open_port(self.Selected_port)
+        status ="OK"
         if status=="OK":
-            self.ch_pAmeter6514.clear_status()
+            #self.ch_pAmeter6514.clear_status()
             #self.MT_pAmeter6514.zero_check(status='OFF')
-            self.ch_pAmeter6514.conf_function('current',wait=100)
+            #self.ch_pAmeter6514.conf_function('current',wait=100)
             self.ch_pAmeter6514.start()
     
     @log_exceptions(log_func=logger.error)

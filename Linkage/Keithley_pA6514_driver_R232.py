@@ -123,7 +123,8 @@ class Keithley6514Com(QThread):
         self._keep_on = keep_on
         print(f'keep on =={keep_on}')
         self.response_msg = ''
-        self.serial = serial.Serial()
+        #self.serial = serial.Serial()
+        self.serial = serial.Serial(port)
         #self.open_port(port)
 
 
