@@ -108,7 +108,7 @@ class Keithley6514Com(QThread):
         """
     data_sig = Signal(list)
 
-    def __init__(self, port:str, func: str, points: int = 5, delay: float = 0.1, full_time: float = 1000,
+    def __init__(self, port, func: str, points: int = 5, delay: float = 0.1, full_time: float = 1000,
                  keep_on: int = 0, nplc: int = 1,
                  parent=None):
         #QThread.__init__(self, parent)
@@ -124,7 +124,8 @@ class Keithley6514Com(QThread):
         print(f'keep on =={keep_on}')
         self.response_msg = ''
         #self.serial = serial.Serial()
-        self.serial = serial.Serial(port)
+        #self.serial = serial.Serial(port)
+        self.serial = port
         #self.open_port(port)
 
 
@@ -166,7 +167,7 @@ class Keithley6514Com(QThread):
 
     def __del__(self):
         self.run_flag = False
-        self.close_port()
+        #self.close_port()
 
     def set_keep_on(self,keep_on:int):
         """keep on monitoring

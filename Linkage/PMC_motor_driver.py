@@ -88,6 +88,9 @@ class pmcSetThread(QThread):
         self.set_flag=True
         self.wait=wait
     
+    def __del__(self):
+        self.set_flag = False
+
     def run(self):
         t0 = time.time()  # for time out
         print(f'start setting ch{self.ch_num} position:...')
