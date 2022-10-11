@@ -8,6 +8,9 @@ from PySide6 import QtCore, QtWidgets
 from PySide6.QtWidgets import QWidget, QPushButton, QStyle, QFileDialog, QApplication, QMainWindow, QGridLayout, \
     QMessageBox
 import pandas as pd
+import serial
+import serial.tools.list_ports
+from serial import SerialException
 
 # import main UI function
 from UI.UI_BPM_plot import Ui_MainWindow
@@ -355,6 +358,7 @@ class PMCMotionPlot(QMainWindow, Ui_MainWindow):
         self._status_timer=QTimer() # status timer
         self._status_timer.timeout.connect(self.update_pAmeter_status)
         self._shining_flag=0 # for indicate pAmeter connection
+        self.serial_port=None
 
     def list_all_COM_port(self):
         COM_ports = get_COM_port()
@@ -372,11 +376,13 @@ class PMCMotionPlot(QMainWindow, Ui_MainWindow):
         if self.Port_cbx.currentText() and not self.pAmeter_connection:
             Selected_port = self.Port_cbx.currentText().split(':')[0]
             try:
-                pAmeter6514 = Keithley6514Com(port=Selected_port, func='currents', points=5,full_time=100,keep_on=0)
+                self.serial_port=serial.Serial(Selected_port)
+                self.pAmeter6514 = Keithley6514Com(port=self.serial_port, func='currents', points=5,full_time=100,keep_on=0)
                 #status = self.pAmeter6514.open_port(Selected_port)
                 status = "OK"
                 connection_msg = self.Port_cbx.currentText() + ':\n' + str(status)
-                version=pAmeter6514.version
+                version=self.pAmeter6514.version
+                print(f'get vversion: {version}')
             except Exception as e: 
                 pAmeter6514=None
                 self._msgbox = MyMsgBox(title="Connection msg", text="Connection to Electrometer6514 Fail", details=connection_msg+traceback.format_exc() + str(e))
@@ -384,6 +390,10 @@ class PMCMotionPlot(QMainWindow, Ui_MainWindow):
                 if status == "OK" and version:
                     self._msgbox = MyMsgBox(title="Connection msg", text="Connection to Electrometer6514 Success", details=connection_msg)
                     print(f'Electrometer6514 at {Selected_port}:connected')
+                    self.pAmeter6514.clear_status()
+                    #self.MT_pAmeter6514.zero_check(status='OFF')
+                    time.sleep(0.5)
+                    self.pAmeter6514.conf_function('current',wait=500)
                     self.Connect_pAmeter_btn.setEnabled(False)
                     self.Connect_pAmeter_btn.setText("Connected")
                     self.pAmeter_connection = True
@@ -440,7 +450,7 @@ class PMCMotionPlot(QMainWindow, Ui_MainWindow):
             print('Start monitoring pAmeter')
             self._pA_start_t = time.time()
             try:
-                self.MT_pAmeter6514 = Keithley6514Com(port=self.Selected_port, func='currents', points=5,full_time=1000,keep_on=1)
+                self.MT_pAmeter6514 = Keithley6514Com(port=self.serial_port, func='currents', points=5,full_time=1000,keep_on=1)
                 self.MT_pAmeter6514.data_sig.connect(self.get_pAmonitor_data)
                 #status = self.MT_pAmeter6514.open_port(self.Selected_port)
                 # initialize keithley 6514 for current measurement
@@ -448,9 +458,9 @@ class PMCMotionPlot(QMainWindow, Ui_MainWindow):
                 print(status)
                 if  status=='OK':
                     #self.ini_keithley6514_curr(nplc=5,points=10)
-                    self.MT_pAmeter6514.clear_status()
+                    #self.MT_pAmeter6514.clear_status()
                     #self.MT_pAmeter6514.zero_check(status='OFF')
-                    self.MT_pAmeter6514.conf_function('current',wait=100)
+                    #self.MT_pAmeter6514.conf_function('current',wait=100)
                     resp = self.MT_pAmeter6514.read_data(wait=100)
                     data = self.MT_pAmeter6514.get_value(resp)
                     print(f'get value:{data:.4e}A')
@@ -475,7 +485,8 @@ class PMCMotionPlot(QMainWindow, Ui_MainWindow):
         """
         # assert resp[-1] == 'OK', self.raise_warning('error in reading pAmeter')
         if resp[-1] == 'OK' or resp[0] == 0.0:
-            self.lcd_pA.display(resp[0] * 1.0e12)
+            #self.lcd_pA.display(resp[0] * 1.0e12)
+            self.lcd_display(resp[0])
             self._MT_pA_currents.append(resp[0] * 1.0e12)
             self._MT_pA_delay.append(time.time() - self._pA_start_t)
             # plot the data [value,delays]
@@ -491,6 +502,31 @@ class PMCMotionPlot(QMainWindow, Ui_MainWindow):
             self.pAmeter_figure.axes.set_xlabel("Delay(s)", fontsize=10, color='m')
             self.pAmeter_figure.axes.set_ylabel("currents value", fontsize=10, color='m')
             self.pAmeter_figure.draw()
+
+    def lcd_display(self,current:int|float):
+        """display current by uA, nA or pA
+
+        Args:
+            current (_type_): _description_
+
+        Returns:
+            _type_: _description_
+        """
+        lcd_value=-1.0
+        if current*1.0e6>=1:
+            # > 1uA
+            lcd_value=current*1.0e6
+            self.Current_label.setText('uA')
+        elif current*1.0e6<1 and current*1.0e9>=1:
+            # 1nA~1uA
+            lcd_value=current*1.0e9
+            self.Current_label.setText('nA')
+        else:
+            # < 1nA
+            
+            lcd_value=current*1.0e12
+            self.Current_label.setText('pA')
+        self.lcd_pA.display(lcd_value)
 
     @log_exceptions(log_func=logger.error)
     @Slot()
@@ -829,6 +865,7 @@ class PMCMotionPlot(QMainWindow, Ui_MainWindow):
         self._save_file_flag = 0
         self._save_N = 0  # index for save order
         self.scan_ch_num=None
+        self._scan_info=None
 
     @log_exceptions(log_func=logger.error)
     @Slot()
@@ -861,6 +898,7 @@ class PMCMotionPlot(QMainWindow, Ui_MainWindow):
                             f' total points: {len(scan_range_list[-1])}, you can start now')
             self._scan_range_set_flag = 1
             print(self._scan_info)
+            logger.info(f'get scan info: {self._scan_info}')
 
     @log_exceptions(log_func=logger.error)
     @Slot()
@@ -871,23 +909,24 @@ class PMCMotionPlot(QMainWindow, Ui_MainWindow):
         :return:
         """
         # clear all previous scan data
+        print(f'start scan process:{self._scan_info}')
         self.clear_all_data()
         print(f'start plot={self._start_plot_flag}-set scan range={self._scan_range_set_flag}')
-        if self._start_plot_flag == 0 and self._scan_range_set_flag == 1:
+        if self._start_plot_flag == 0 and self._scan_range_set_flag == 1 and isinstance(self._scan_info,list):
             # scan is off
             print(f'scan channel={self._scan_info[0]}')
             scan_ch_num=pmc_channels.get(self._scan_info[0])
             # scan the channel with the scan_list
             print(f"start scan, Channel:{self._scan_info[0]}, ch_num:{scan_ch_num}")
             self.scan_ch_pA(scan_ch_num,self._scan_info[-1])
-        elif self._start_plot_flag == 0 and self._scan_range_set_flag == 0:
-            # scan range not set
-            print('should set scan range first')
-            self.raise_info('should set scan range first')
+        # elif self._start_plot_flag == 0 and self._scan_range_set_flag == 0:
+        #     # scan range not set
+        #     print('should set scan range first')
+        #     self.raise_info('should set scan range first')
         else:
             # scan is already on, can not start
             print('scan is already on, stop scan or wait!')
-            self.raise_info('scan is already on, stop scan or wait!')
+            self.raise_info('should set scan range first or scan is already on, stop scan or wait!')
 
     def set_progress_Bar(self,status:int):
         self.progressBar.setValue(status)
@@ -896,7 +935,7 @@ class PMCMotionPlot(QMainWindow, Ui_MainWindow):
     """
     full sequence of ch-pAmeter scan
     """
-    
+    @log_exceptions(log_func=logger.error)
     def scan_ch_pA(self,ch_num,range_list:list):
         """scan one channel and plot
         """
@@ -915,7 +954,8 @@ class PMCMotionPlot(QMainWindow, Ui_MainWindow):
             self._scan_N = 0
             self.scan_start_sig.connect(self.start_ch_pA_set)
             self.scan_start_sig.emit(['OK', self._scan_N])
-
+    
+    @log_exceptions(log_func=logger.error)
     @Slot(list)
     def start_ch_pA_set(self, cmd: list):
         if cmd[0] == 'OK':
@@ -925,13 +965,14 @@ class PMCMotionPlot(QMainWindow, Ui_MainWindow):
             self.pmcsetQThread.done_signal.connect(self.pmc_set_done)
             self.pmcsetQThread.start()
 
+    @log_exceptions(log_func=logger.error)
     @Slot(list)
     def pmc_set_done(self, resp: list):
         print(f'get pmc channel{resp[-2]} set info:{resp}')
         # save the real read-back value for plot
         self._plot_ch_list.append(resp[0])
         # start read pAmeter
-        self.ch_pAmeter6514 = Keithley6514Com(port=self.Selected_port, func='currents', points=5,full_time=100,keep_on=0)
+        self.ch_pAmeter6514 = Keithley6514Com(port=self.serial_port, func='currents', points=5,full_time=100,keep_on=0)
         self.ch_pAmeter6514.data_sig.connect(self.get_ch_pA_data)
         #status = self.ch_pAmeter6514.open_port(self.Selected_port)
         status ="OK"
@@ -969,6 +1010,7 @@ class PMCMotionPlot(QMainWindow, Ui_MainWindow):
                 self.set_progress_Bar(100)
                 done_stamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
                 self.Done_time.setText(f'Finished at:{done_stamp}')
+                self.scan_start_sig.disconnect(self.start_ch_pA_set)
                 self._scan_pmc_ch_flag = 0
                 self._start_plot_flag = 0
                 self.updateall_ch_values()
@@ -1022,6 +1064,7 @@ class PMCMotionPlot(QMainWindow, Ui_MainWindow):
         return valid_full_data
 
     # clear all data
+    @log_exceptions(log_func=logger.error)
     def clear_all_data(self):
         """
         clear all previous scan data
