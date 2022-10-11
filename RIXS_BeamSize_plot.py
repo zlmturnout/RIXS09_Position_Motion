@@ -485,7 +485,8 @@ class PMCMotionPlot(QMainWindow, Ui_MainWindow):
         """
         # assert resp[-1] == 'OK', self.raise_warning('error in reading pAmeter')
         if resp[-1] == 'OK' or resp[0] == 0.0:
-            self.lcd_pA.display(resp[0] * 1.0e12)
+            #self.lcd_pA.display(resp[0] * 1.0e12)
+            self.lcd_display(resp[0])
             self._MT_pA_currents.append(resp[0] * 1.0e12)
             self._MT_pA_delay.append(time.time() - self._pA_start_t)
             # plot the data [value,delays]
@@ -501,6 +502,32 @@ class PMCMotionPlot(QMainWindow, Ui_MainWindow):
             self.pAmeter_figure.axes.set_xlabel("Delay(s)", fontsize=10, color='m')
             self.pAmeter_figure.axes.set_ylabel("currents value", fontsize=10, color='m')
             self.pAmeter_figure.draw()
+
+    def lcd_display(self,current:int|float):
+        """display current by uA, nA or pA
+
+        Args:
+            current (_type_): _description_
+
+        Returns:
+            _type_: _description_
+        """
+        lcd_value=-1.0
+        if current*1.0e6>=1:
+            # > 1uA
+            lcd_value=current*1.0e6
+            self.Current_label.setText('uA')
+        elif current*1.0e6<1 and current*1.0e9>=1:
+            # 1nA~1uA
+            lcd_value=current*1.0e9
+            self.Current_label.setText('nA')
+        else:
+            # < 1nA
+            lcd_value=current*1.0e12
+            self.Current_label.setText('pA')
+        self.lcd_pA.display(lcd_value)
+
+
 
     @log_exceptions(log_func=logger.error)
     @Slot()
