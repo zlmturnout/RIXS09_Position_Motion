@@ -725,16 +725,16 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_7.addWidget(self.lcd_pA)
 
-        self.label_3 = QLabel(self.Adc_box_2)
-        self.label_3.setObjectName(u"label_3")
+        self.Current_label = QLabel(self.Adc_box_2)
+        self.Current_label.setObjectName(u"Current_label")
         palette11 = QPalette()
         palette11.setBrush(QPalette.Active, QPalette.WindowText, brush5)
         palette11.setBrush(QPalette.Inactive, QPalette.WindowText, brush5)
         palette11.setBrush(QPalette.Disabled, QPalette.WindowText, brush3)
-        self.label_3.setPalette(palette11)
-        self.label_3.setFont(font1)
+        self.Current_label.setPalette(palette11)
+        self.Current_label.setFont(font1)
 
-        self.horizontalLayout_7.addWidget(self.label_3)
+        self.horizontalLayout_7.addWidget(self.Current_label)
 
         self.horizontalSpacer_19 = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
 
@@ -1597,7 +1597,7 @@ class Ui_MainWindow(object):
         self.menubar.setDefaultUp(False)
         self.menuMenu = QMenu(self.menubar)
         self.menuMenu.setObjectName(u"menuMenu")
-        self.menuMenu.setGeometry(QRect(342, 306, 161, 50))
+        self.menuMenu.setGeometry(QRect(342, 306, 160, 50))
         sizePolicy10 = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
         sizePolicy10.setHorizontalStretch(0)
         sizePolicy10.setVerticalStretch(0)
@@ -1737,7 +1737,7 @@ class Ui_MainWindow(object):
 #if QT_CONFIG(tooltip)
         self.lcd_pA.setToolTip(QCoreApplication.translate("MainWindow", u"read value", None))
 #endif // QT_CONFIG(tooltip)
-        self.label_3.setText(QCoreApplication.translate("MainWindow", u"pA", None))
+        self.Current_label.setText(QCoreApplication.translate("MainWindow", u"pA", None))
         self.Monitor_pA.setText(QCoreApplication.translate("MainWindow", u"Monitor", None))
         self.Stop_Monitor_pA.setText(QCoreApplication.translate("MainWindow", u"Stop", None))
         self.Clear_Monitor_pA.setText(QCoreApplication.translate("MainWindow", u"Clear", None))

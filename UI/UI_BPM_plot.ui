@@ -2631,7 +2631,7 @@ color:rgb(255, 255, 255)</string>
                     </widget>
                    </item>
                    <item>
-                    <widget class="QLabel" name="label_3">
+                    <widget class="QLabel" name="Current_label">
                      <property name="palette">
                       <palette>
                        <active>
@@ -6056,7 +6056,7 @@ hr { height: 1px; border-width: 0; }
      <rect>
       <x>342</x>
       <y>306</y>
-      <width>161</width>
+      <width>160</width>
       <height>50</height>
      </rect>
     </property>
