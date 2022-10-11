@@ -523,11 +523,10 @@ class PMCMotionPlot(QMainWindow, Ui_MainWindow):
             self.Current_label.setText('nA')
         else:
             # < 1nA
+            
             lcd_value=current*1.0e12
             self.Current_label.setText('pA')
         self.lcd_pA.display(lcd_value)
-
-
 
     @log_exceptions(log_func=logger.error)
     @Slot()
