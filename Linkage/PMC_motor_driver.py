@@ -40,6 +40,7 @@ class pmc(object):
             self._socket.send(bytes(data, "utf-8") + b'\r\n')
 
         r = self._socket.recv(1024)
+        #print(f'resp:{r}')
         return r.decode('utf8')
 
     def estop(self, ch):
@@ -77,7 +78,8 @@ class pmc(object):
         Args:
             ch (str): _description_
         """
-        return self.send_recv("SPD?"+ch)
+        resp=self.send_recv("SPD?"+ch)
+        return resp.split('\r\n')[0] if resp else None
 
 
     def get_status(self):

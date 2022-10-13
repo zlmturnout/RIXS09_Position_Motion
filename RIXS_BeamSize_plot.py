@@ -386,6 +386,7 @@ class PMCMotionPlot(QMainWindow, Ui_MainWindow):
             except Exception as e: 
                 pAmeter6514=None
                 self._msgbox = MyMsgBox(title="Connection msg", text="Connection to Electrometer6514 Fail", details=connection_msg+traceback.format_exc() + str(e))
+                self._msgbox.show()
             else:
                 if status == "OK" and version:
                     self._msgbox = MyMsgBox(title="Connection msg", text="Connection to Electrometer6514 Success", details=connection_msg)
@@ -399,7 +400,7 @@ class PMCMotionPlot(QMainWindow, Ui_MainWindow):
                     self.pAmeter_connection = True
                     self.Selected_port=Selected_port
                 #self.pAmeter6514.close_port()
-            self._msgbox.show()
+                    self._msgbox.show()
             self._status_timer.start(1000)
             #print(self.pAmeter6514)
 
@@ -420,10 +421,10 @@ class PMCMotionPlot(QMainWindow, Ui_MainWindow):
         if self.pAmeter_connection:
             self.Connect_pAmeter_btn.setText("Connected")
             if self._shining_flag==0:
-                self.Connect_pAmeter_btn.setStyleSheet("QPushButton{background-color: rgb(0, 255, 127)}")
+                self.Connect_pAmeter_btn.setStyleSheet("QPushButton{background-color: rgb(0, 255, 127);color:rgb(255, 255, 255)}")
                 self._shining_flag=1
             elif self._shining_flag==1:
-                self.Connect_pAmeter_btn.setStyleSheet("QPushButton{background-color: rgb(0, 170, 127)}")
+                self.Connect_pAmeter_btn.setStyleSheet("QPushButton{background-color: rgb(0, 170, 127);color:rgb(255, 255, 255)}")
                 self._shining_flag=0
         else:
             #self.Connect_pAmeter_btn.setStyleSheet("QPushButton{background-color: rgb(98, 98, 98)}")
@@ -611,10 +612,10 @@ class PMCMotionPlot(QMainWindow, Ui_MainWindow):
     def update_pmc_status(self):
         if self.pmc_motor.connect_status:
             if self.pmc_shining_flag==0:
-                self.Connect_pmc_btn.setStyleSheet("QPushButton{background-color: rgb(0, 255, 127)}")
+                self.Connect_pmc_btn.setStyleSheet("QPushButton{background-color: rgb(0, 255, 127);color:rgb(255, 255, 255)}")
                 self.pmc_shining_flag=1
             elif self.pmc_shining_flag==1:
-                self.Connect_pmc_btn.setStyleSheet("QPushButton{background-color: rgb(0, 170, 127)}")
+                self.Connect_pmc_btn.setStyleSheet("QPushButton{background-color: rgb(0, 170, 127);color:rgb(255, 255, 255)}")
                 self.pmc_shining_flag=0
         else:
             pass
@@ -649,12 +650,13 @@ class PMCMotionPlot(QMainWindow, Ui_MainWindow):
             ch_name (str): _description_
         """
         ch_num=pmc_channels.get(ch_name)
-        print(f'update channel:{ch_num} with name:{ch_name}')
+        #print(f'update channel:{ch_num} with name:{ch_name}')
         if isinstance(ch_num,int):
             # get the channel value
             ch_value=self.pmc_motor.get_pos(str(ch_num))
-            if ch_value:
-                self.ch_pos_lcd_dict[ch_name].display(ch_value)
+            if isinstance(ch_value,int):
+                #self.ch_pos_lcd_dict[ch_name].display(ch_value)
+                print(f'update channel:{ch_num} with name:{ch_name} value:{ch_value}')
                 self.ch_values_dict[ch_name]=ch_value
                 self.ch_changeN_dict[ch_name]+=1
                 self.ch_valuelist_dict[ch_name].append(ch_value)
@@ -699,10 +701,11 @@ class PMCMotionPlot(QMainWindow, Ui_MainWindow):
         Returns:
             _type_: _description_
         """
-        SPD_index={{"LSPD":0,"MSPD":1,"HSPD":2}}
+        SPD_index={"LSPD":0,"MSPD":1,"HSPD":2}
         selected_ch=pmc_channels.get(self.Channel_cbx.currentText(),3)
         if self.pmc_motor.connect_status:
             speed_mode=self.pmc_motor.get_SPD(ch=str(selected_ch))
+            print(f'{self.Channel_cbx.currentText()} speed mode:{speed_mode} ')
             if speed_mode:
                 self.SPD_cbx.setCurrentIndex(SPD_index.get(speed_mode,0))
 
