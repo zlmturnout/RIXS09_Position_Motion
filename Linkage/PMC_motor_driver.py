@@ -61,6 +61,25 @@ class pmc(object):
         b="S" if backlash else "B"
         self.send("ABS"+ch+b+str(pos))
 
+    def set_SPD(self,ch:str,mode:str):
+        """set the speed mode of ch
+        send(SPD+<mode>+ch)
+        mode=L/LSPD or M/MSPD or H/HSPD
+        Args:
+            ch (str): _description_
+            mode (str): L/LSPD or M/MSPD or H/HSPD
+        """
+        self.send("SPD"+mode+ch)
+    
+    def get_SPD(self,ch:str):
+        """get the speed mode of ch
+
+        Args:
+            ch (str): _description_
+        """
+        return self.send_recv("SPD?"+ch)
+
+
     def get_status(self):
         p = self.send_recv(b'STS_16?')
         return p

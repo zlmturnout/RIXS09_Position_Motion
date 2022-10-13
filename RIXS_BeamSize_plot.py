@@ -523,7 +523,6 @@ class PMCMotionPlot(QMainWindow, Ui_MainWindow):
             self.Current_label.setText('nA')
         else:
             # < 1nA
-            
             lcd_value=current*1.0e12
             self.Current_label.setText('pA')
         self.lcd_pA.display(lcd_value)
@@ -578,8 +577,10 @@ class PMCMotionPlot(QMainWindow, Ui_MainWindow):
         self.scan_channel=pmc_channels.get(self.Channel_cbx.currentText(),0)
         self.scan_channel_name=self.Channel_cbx.currentText()
         self.Channel_cbx.currentIndexChanged['int'].connect(self.set_scan_channel)
+        self.SPD_cbx.currentIndexChanged['int'].connect(self.set_ch_speedmode)
         self.ch_pos_lcd_dict={'Ch3_X':self.lcd_X_pos,'Ch4_Y':self.lcd_Y_pos,'Ch5_Z':self.lcd_Z_pos}
         self.ch_values_dict={'Ch3_X':0,'Ch4_Y':0,'Ch5_Z':0}
+        self.ch_speedmode={"LSPD":"L","MSPD":"M","HSPD":"H"}
         self.step_X_size=1
         self.step_Y_size=1
         self.step_Z_size=1
@@ -595,12 +596,28 @@ class PMCMotionPlot(QMainWindow, Ui_MainWindow):
         self.X_pos_move_flag=False
         self.Y_pos_move_flag=False
         self.Z_pos_move_flag=False
+        #for pmc motor status
+        self.pmc_status_timer=QTimer() # status timer
+        self.pmc_status_timer.timeout.connect(self.update_pmc_status)
+        self.pmc_shining_flag=0 # for indicate pmc connection
 
 
     @Slot()
     def on_Connect_pmc_btn_clicked(self):
         self.show_PMC_status()
         self.updateall_ch_values()
+
+    @Slot()
+    def update_pmc_status(self):
+        if self.pmc_motor.connect_status:
+            if self.pmc_shining_flag==0:
+                self.Connect_pmc_btn.setStyleSheet("QPushButton{background-color: rgb(0, 255, 127)}")
+                self.pmc_shining_flag=1
+            elif self.pmc_shining_flag==1:
+                self.Connect_pmc_btn.setStyleSheet("QPushButton{background-color: rgb(0, 170, 127)}")
+                self.pmc_shining_flag=0
+        else:
+            pass
 
     @log_exceptions(log_func=logger.error)
     @Slot(int)
@@ -611,16 +628,19 @@ class PMCMotionPlot(QMainWindow, Ui_MainWindow):
         """
         self.Channel_tabs.setCurrentIndex(n)
         self.scan_channel_name=self.Channel_cbx.currentText()
-        self.scan_channel=pmc_channels.get(self.Channel_cbx.currentText(),1)
+        self.scan_channel=pmc_channels.get(self.Channel_cbx.currentText(),3)
         self._scan_range_set_flag=0
         self.updateall_ch_values()
 
     def updateall_ch_values(self):
         if self.pmc_motor.connect_status:
+            self.pmc_shining_flag=1
             # get value of all 16 channels
             self.update_ch_value('Ch3_X')
             self.update_ch_value('Ch4_Y')
             self.update_ch_value('Ch5_Z')
+            self.pmc_status_timer.start(1000)
+            self.update_ch_SPD()
             
     def update_ch_value(self,ch_name:str):
         """update the ch_name value and plot
@@ -658,6 +678,33 @@ class PMCMotionPlot(QMainWindow, Ui_MainWindow):
             ch_figure.axes.cla()
             ch_figure.axes.plot(x_num_list, x_pos, '-oc', markersize=1)
             ch_figure.draw()
+
+    # for channel speed mode
+    @Slot(int)
+    def set_ch_speedmode(self,n:int):
+        """set the current channel speedmode[L,M,H]
+
+        Returns:
+            _type_: _description_
+        """
+        print(f'select speed mode:{self.SPD_cbx.currentText()}')
+        selected_ch=pmc_channels.get(self.Channel_cbx.currentText(),3)
+        speed_mode=self.ch_speedmode.get(self.SPD_cbx.currentText())
+        if self.pmc_motor.connect_status:
+            self.pmc_motor.set_SPD(ch=str(selected_ch),mode=speed_mode)
+
+    def update_ch_SPD(self):
+        """update the current ch spd
+
+        Returns:
+            _type_: _description_
+        """
+        SPD_index={{"LSPD":0,"MSPD":1,"HSPD":2}}
+        selected_ch=pmc_channels.get(self.Channel_cbx.currentText(),3)
+        if self.pmc_motor.connect_status:
+            speed_mode=self.pmc_motor.get_SPD(ch=str(selected_ch))
+            if speed_mode:
+                self.SPD_cbx.setCurrentIndex(SPD_index.get(speed_mode,0))
 
     # for step size
     @Slot()
@@ -997,6 +1044,8 @@ class PMCMotionPlot(QMainWindow, Ui_MainWindow):
             if self._scan_N < self._scan_list_num:
                 self.scan_start_sig.emit(['OK', self._scan_N])
                 self.set_progress_Bar(int(100*self._scan_N/self._scan_list_num))
+                #update ch value
+                self.update_ch_value(self.scan_channel_name)
             else:
                 print('all position in list have been set')
                 full_data =self.get_full_data()
