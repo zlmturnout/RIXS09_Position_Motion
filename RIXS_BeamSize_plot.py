@@ -1,39 +1,50 @@
-import time, random, sys, os, math, datetime, traceback
+import datetime
+import math
+import os
+import random
+import sys
+import time
+import traceback
+
+import pandas as pd
 # change to Qt6 for python PySide6 and Python310--start_date 2022/07/06
 import PySide6
-from PySide6.QtWidgets import QWidget, QPushButton, QApplication, QMainWindow, QGridLayout,QMessageBox
-from PySide6.QtCore import QTimer, Slot, QThread, Signal, Qt,QSize
-from PySide6.QtGui import QDoubleValidator, QIntValidator, QTextCursor,QAction,QIcon
-from PySide6 import QtCore, QtWidgets
-from PySide6.QtWidgets import QWidget, QPushButton, QStyle, QFileDialog, QApplication, QMainWindow, QGridLayout, \
-    QMessageBox
-import pandas as pd
 import serial
 import serial.tools.list_ports
+from PySide6 import QtCore, QtWidgets
+from PySide6.QtCore import QSize, Qt, QThread, QTimer, Signal, Slot
+from PySide6.QtGui import (QAction, QDoubleValidator, QIcon, QIntValidator,
+                           QTextCursor)
+from PySide6.QtWidgets import (QApplication, QFileDialog, QGridLayout,
+                               QMainWindow, QMessageBox, QPushButton, QStyle,
+                               QWidget)
 from serial import SerialException
 
-# import main UI function
-from UI.UI_BPM_plot import Ui_MainWindow
-# import sub UI files
-# import my message box
-from UI.QtforPython_useful_tools import MyMsgBox, EmittingStr
-# import scan range UI
-from UI.Input_scan_range import InputScanRange, calculate_scan_range
-# import data view plot UI
-from UI.Data_View_Plot import DataViewPlot
-from UI.SQLDataViewPlot import ViewSQLiteData
-# import my own matplotlib InitialPlot
-from Dependant.My_Matplotlib_PySide6 import Myplot, InitialPlot, NavigationToolbar, MonitorPlot
-# import my tool functions for usage
-from Dependant.Tools_functions import get_datetime, my_logger, creatPath, to_log, log_exception, log_exceptions, \
-    deco_count_time
 # import data form to save dict data
-from Dependant.Dict_DataFrame_Sqlite import dict_to_excel, dict_to_csv, dict_to_json,dict_to_SQLTable
-
+from Dependant.Dict_DataFrame_Sqlite import (dict_to_csv, dict_to_excel,
+                                             dict_to_json, dict_to_SQLTable)
+# import my own matplotlib InitialPlot
+from Dependant.My_Matplotlib_PySide6 import (InitialPlot, MonitorPlot, Myplot,
+                                             NavigationToolbar)
+# import my tool functions for usage
+from Dependant.Tools_functions import (creatPath, deco_count_time,
+                                       get_datetime, log_exception,
+                                       log_exceptions, my_logger, to_log)
 # import read thread for pAmeter 6517B
 #from Linkage.Keithley_pAmeter_driver import Read6517bCurrent
-from Linkage.Keithley_pA6514_driver_R232 import Keithley6514Com,get_COM_port
-from Linkage.PMC_motor_driver import pmc,pmcSetThread
+from Linkage.Keithley_pA6514_driver_R232 import Keithley6514Com, get_COM_port
+from Linkage.PMC_motor_driver import pmc, pmcSetThread
+# import data view plot UI
+from UI.Data_View_Plot import DataViewPlot
+# import scan range UI
+from UI.Input_scan_range import InputScanRange, calculate_scan_range
+# import sub UI files
+# import my message box
+from UI.QtforPython_useful_tools import EmittingStr, MyMsgBox
+from UI.SQLDataViewPlot import ViewSQLiteData
+# import main UI function
+from UI.UI_BPM_plot import Ui_MainWindow
+
 # set up the host and port of the ethernet device for E-1608
 # PD_host = '169.254.111.100'
 PMC_host = '192.168.1.55'
@@ -382,9 +393,9 @@ class PMCMotionPlot(QMainWindow, Ui_MainWindow):
                 status = "OK"
                 connection_msg = self.Port_cbx.currentText() + ':\n' + str(status)
                 version=self.pAmeter6514.version
-                print(f'get vversion: {version}')
+                print(f'get version: {version}')
             except Exception as e: 
-                pAmeter6514=None
+                #pAmeter6514=None
                 self._msgbox = MyMsgBox(title="Connection msg", text="Connection to Electrometer6514 Fail", details=connection_msg+traceback.format_exc() + str(e))
                 self._msgbox.show()
             else:
@@ -403,7 +414,6 @@ class PMCMotionPlot(QMainWindow, Ui_MainWindow):
                     self._msgbox.show()
             self._status_timer.start(1000)
             #print(self.pAmeter6514)
-
     @log_exceptions(log_func=logger.error)
     @Slot()
     def on_Port_cbx_currentIndexChanged(self):
