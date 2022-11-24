@@ -33,7 +33,7 @@ from Dependant.Tools_functions import (creatPath, deco_count_time,
 # import read thread for pAmeter 6517B
 #from Linkage.Keithley_pAmeter_driver import Read6517bCurrent
 from Linkage.Keithley_pA6514_driver_R232 import Keithley6514Com, get_COM_port
-from Linkage.PMC_motor_driver import pmc, pmcSetThread
+from Linkage.PMC_motor_driver import pmc, pmcSetThread,pmc_RS232
 # import data view plot UI
 from UI.Data_View_Plot import DataViewPlot
 # import scan range UI
@@ -106,25 +106,28 @@ class PMCMotionPlot(QMainWindow, Ui_MainWindow):
         self.__ini_PMC_plot__()
 
     def __ini_menu_instrument(self):
-        self.pmc_motor=pmc(PMC_host, PMC_port)
+        #self.pmc_motor=pmc(PMC_host, PMC_port)
+        self.pmc_motor=pmc_RS232(port="COM4")
         self.actionPMC_motor.triggered.connect(self.show_PMC_status)
         #self.actionpAmeter.triggered.connect(self.show_pAmeter_status)
 
     @log_exceptions(log_func=logger.error)
     def show_PMC_status(self):
+        connect_txt=''
         if self.pmc_motor.connect_status:
             pmc_status = ' connected'
             version=self.pmc_motor.ver()
         else:
-            connect_status=self.pmc_motor.connect()
-            if connect_status:
-                pmc_status = ' connected'
+            connect_txt=self.pmc_motor.open_port()
+            pmc_status = connect_txt
+            if self.pmc_motor.connect_status:
                 version=self.pmc_motor.ver()
             else:
                 pmc_status =' not connected'
+                version=' not found'
         self.msg_box = MyMsgBox(title='PMC motor status', text=f'PMC motor' + pmc_status,
-                                details=f'PMC motor 'f'in {PMC_host}:{PMC_port} '
-                                        f'{pmc_status}\n+ version:{version}')
+                                details=f'PMC motor 'f'in {PMC_host}:{PMC_port} or COM4'
+                                        f'{pmc_status+connect_txt}\n+ version:{version}')
         self.msg_box.show()
 
     # def show_pAmeter_status(self, check):
@@ -377,6 +380,7 @@ class PMCMotionPlot(QMainWindow, Ui_MainWindow):
         for COM, port in COM_ports.items():
             self.Port_cbx.addItem(f'{COM}:{port}')
 
+    @log_exceptions(log_func=logger.error)
     @Slot()
     def on_Connect_pAmeter_btn_clicked(self):
         """connect pAmeter 6514
@@ -392,20 +396,22 @@ class PMCMotionPlot(QMainWindow, Ui_MainWindow):
                 #status = self.pAmeter6514.open_port(Selected_port)
                 status = "OK"
                 connection_msg = self.Port_cbx.currentText() + ':\n' + str(status)
-                version=self.pAmeter6514.version
-                print(f'get version: {version}')
+                #version=self.pAmeter6514.version
+                #print(f'get version: {version}')
             except Exception as e: 
                 #pAmeter6514=None
                 self._msgbox = MyMsgBox(title="Connection msg", text="Connection to Electrometer6514 Fail", details=connection_msg+traceback.format_exc() + str(e))
                 self._msgbox.show()
             else:
-                if status == "OK" and version:
+                if status == "OK":
                     self._msgbox = MyMsgBox(title="Connection msg", text="Connection to Electrometer6514 Success", details=connection_msg)
                     print(f'Electrometer6514 at {Selected_port}:connected')
                     self.pAmeter6514.clear_status()
                     #self.MT_pAmeter6514.zero_check(status='OFF')
                     time.sleep(0.5)
                     self.pAmeter6514.conf_function('current',wait=500)
+                    time.sleep(1.5)
+                    self.pAmeter6514.current_nplc(5)
                     self.Connect_pAmeter_btn.setEnabled(False)
                     self.Connect_pAmeter_btn.setText("Connected")
                     self.pAmeter_connection = True
