@@ -396,8 +396,8 @@ class PMCMotionPlot(QMainWindow, Ui_MainWindow):
                 #status = self.pAmeter6514.open_port(Selected_port)
                 status = "OK"
                 connection_msg = self.Port_cbx.currentText() + ':\n' + str(status)
-                #version=self.pAmeter6514.version
-                #print(f'get version: {version}')
+                version=self.pAmeter6514.version
+                print(f'get version: {version}')
             except Exception as e: 
                 #pAmeter6514=None
                 self._msgbox = MyMsgBox(title="Connection msg", text="Connection to Electrometer6514 Fail", details=connection_msg+traceback.format_exc() + str(e))
@@ -449,7 +449,10 @@ class PMCMotionPlot(QMainWindow, Ui_MainWindow):
     def ini_keithley6514_curr(self,nplc=5,points=10):
         if self.pAmeter_connection:
             self.pAmeter6514.zero_check(status='OFF')
-            self.pAmeter6514.conf_function('current')
+            time.sleep(0.5)
+            #self.pAmeter6514.conf_function('current')
+            self.pAmeter6514.current_nplc(nplc=5)
+            time.sleep(0.5)
             resp = self.pAmeter6514.read_data(wait=100)
             data = self.pAmeter6514.get_value(resp)
             print(f'get value:{data:.4e}A')
