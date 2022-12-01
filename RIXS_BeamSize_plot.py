@@ -1,39 +1,50 @@
-import time, random, sys, os, math, datetime, traceback
+import datetime
+import math
+import os
+import random
+import sys
+import time
+import traceback
+
+import pandas as pd
 # change to Qt6 for python PySide6 and Python310--start_date 2022/07/06
 import PySide6
-from PySide6.QtWidgets import QWidget, QPushButton, QApplication, QMainWindow, QGridLayout,QMessageBox
-from PySide6.QtCore import QTimer, Slot, QThread, Signal, Qt,QSize
-from PySide6.QtGui import QDoubleValidator, QIntValidator, QTextCursor,QAction,QIcon
-from PySide6 import QtCore, QtWidgets
-from PySide6.QtWidgets import QWidget, QPushButton, QStyle, QFileDialog, QApplication, QMainWindow, QGridLayout, \
-    QMessageBox
-import pandas as pd
 import serial
 import serial.tools.list_ports
+from PySide6 import QtCore, QtWidgets
+from PySide6.QtCore import QSize, Qt, QThread, QTimer, Signal, Slot
+from PySide6.QtGui import (QAction, QDoubleValidator, QIcon, QIntValidator,
+                           QTextCursor)
+from PySide6.QtWidgets import (QApplication, QFileDialog, QGridLayout,
+                               QMainWindow, QMessageBox, QPushButton, QStyle,
+                               QWidget)
 from serial import SerialException
 
-# import main UI function
-from UI.UI_BPM_plot import Ui_MainWindow
-# import sub UI files
-# import my message box
-from UI.QtforPython_useful_tools import MyMsgBox, EmittingStr
-# import scan range UI
-from UI.Input_scan_range import InputScanRange, calculate_scan_range
-# import data view plot UI
-from UI.Data_View_Plot import DataViewPlot
-from UI.SQLDataViewPlot import ViewSQLiteData
-# import my own matplotlib InitialPlot
-from Dependant.My_Matplotlib_PySide6 import Myplot, InitialPlot, NavigationToolbar, MonitorPlot
-# import my tool functions for usage
-from Dependant.Tools_functions import get_datetime, my_logger, creatPath, to_log, log_exception, log_exceptions, \
-    deco_count_time
 # import data form to save dict data
-from Dependant.Dict_DataFrame_Sqlite import dict_to_excel, dict_to_csv, dict_to_json,dict_to_SQLTable
-
+from Dependant.Dict_DataFrame_Sqlite import (dict_to_csv, dict_to_excel,
+                                             dict_to_json, dict_to_SQLTable)
+# import my own matplotlib InitialPlot
+from Dependant.My_Matplotlib_PySide6 import (InitialPlot, MonitorPlot, Myplot,
+                                             NavigationToolbar)
+# import my tool functions for usage
+from Dependant.Tools_functions import (creatPath, deco_count_time,
+                                       get_datetime, log_exception,
+                                       log_exceptions, my_logger, to_log)
 # import read thread for pAmeter 6517B
 #from Linkage.Keithley_pAmeter_driver import Read6517bCurrent
-from Linkage.Keithley_pA6514_driver_R232 import Keithley6514Com,get_COM_port
-from Linkage.PMC_motor_driver import pmc,pmcSetThread
+from Linkage.Keithley_pA6514_driver_R232 import Keithley6514Com, get_COM_port
+from Linkage.PMC_motor_driver import pmc, pmcSetThread,pmc_RS232
+# import data view plot UI
+from UI.Data_View_Plot import DataViewPlot
+# import scan range UI
+from UI.Input_scan_range import InputScanRange, calculate_scan_range
+# import sub UI files
+# import my message box
+from UI.QtforPython_useful_tools import EmittingStr, MyMsgBox
+from UI.SQLDataViewPlot import ViewSQLiteData
+# import main UI function
+from UI.UI_BPM_plot import Ui_MainWindow
+
 # set up the host and port of the ethernet device for E-1608
 # PD_host = '169.254.111.100'
 PMC_host = '192.168.1.55'
@@ -95,25 +106,28 @@ class PMCMotionPlot(QMainWindow, Ui_MainWindow):
         self.__ini_PMC_plot__()
 
     def __ini_menu_instrument(self):
-        self.pmc_motor=pmc(PMC_host, PMC_port)
+        #self.pmc_motor=pmc(PMC_host, PMC_port)
+        self.pmc_motor=pmc_RS232(port="COM4")
         self.actionPMC_motor.triggered.connect(self.show_PMC_status)
         #self.actionpAmeter.triggered.connect(self.show_pAmeter_status)
 
     @log_exceptions(log_func=logger.error)
     def show_PMC_status(self):
+        connect_txt=''
         if self.pmc_motor.connect_status:
             pmc_status = ' connected'
             version=self.pmc_motor.ver()
         else:
-            connect_status=self.pmc_motor.connect()
-            if connect_status:
-                pmc_status = ' connected'
+            connect_txt=self.pmc_motor.open_port()
+            pmc_status = connect_txt
+            if self.pmc_motor.connect_status:
                 version=self.pmc_motor.ver()
             else:
                 pmc_status =' not connected'
+                version=' not found'
         self.msg_box = MyMsgBox(title='PMC motor status', text=f'PMC motor' + pmc_status,
-                                details=f'PMC motor 'f'in {PMC_host}:{PMC_port} '
-                                        f'{pmc_status}\n+ version:{version}')
+                                details=f'PMC motor 'f'in {PMC_host}:{PMC_port} or COM4'
+                                        f'{pmc_status+connect_txt}\n+ version:{version}')
         self.msg_box.show()
 
     # def show_pAmeter_status(self, check):
@@ -366,6 +380,7 @@ class PMCMotionPlot(QMainWindow, Ui_MainWindow):
         for COM, port in COM_ports.items():
             self.Port_cbx.addItem(f'{COM}:{port}')
 
+    @log_exceptions(log_func=logger.error)
     @Slot()
     def on_Connect_pAmeter_btn_clicked(self):
         """connect pAmeter 6514
@@ -382,27 +397,29 @@ class PMCMotionPlot(QMainWindow, Ui_MainWindow):
                 status = "OK"
                 connection_msg = self.Port_cbx.currentText() + ':\n' + str(status)
                 version=self.pAmeter6514.version
-                print(f'get vversion: {version}')
+                print(f'get version: {version}')
             except Exception as e: 
-                pAmeter6514=None
+                #pAmeter6514=None
                 self._msgbox = MyMsgBox(title="Connection msg", text="Connection to Electrometer6514 Fail", details=connection_msg+traceback.format_exc() + str(e))
+                self._msgbox.show()
             else:
-                if status == "OK" and version:
+                if status == "OK":
                     self._msgbox = MyMsgBox(title="Connection msg", text="Connection to Electrometer6514 Success", details=connection_msg)
                     print(f'Electrometer6514 at {Selected_port}:connected')
                     self.pAmeter6514.clear_status()
                     #self.MT_pAmeter6514.zero_check(status='OFF')
                     time.sleep(0.5)
                     self.pAmeter6514.conf_function('current',wait=500)
+                    time.sleep(1.5)
+                    self.pAmeter6514.current_nplc(5)
                     self.Connect_pAmeter_btn.setEnabled(False)
                     self.Connect_pAmeter_btn.setText("Connected")
                     self.pAmeter_connection = True
                     self.Selected_port=Selected_port
                 #self.pAmeter6514.close_port()
-            self._msgbox.show()
+                    self._msgbox.show()
             self._status_timer.start(1000)
             #print(self.pAmeter6514)
-
     @log_exceptions(log_func=logger.error)
     @Slot()
     def on_Port_cbx_currentIndexChanged(self):
@@ -420,10 +437,10 @@ class PMCMotionPlot(QMainWindow, Ui_MainWindow):
         if self.pAmeter_connection:
             self.Connect_pAmeter_btn.setText("Connected")
             if self._shining_flag==0:
-                self.Connect_pAmeter_btn.setStyleSheet("QPushButton{background-color: rgb(0, 255, 127)}")
+                self.Connect_pAmeter_btn.setStyleSheet("QPushButton{background-color: rgb(0, 255, 127);color:rgb(255, 255, 255)}")
                 self._shining_flag=1
             elif self._shining_flag==1:
-                self.Connect_pAmeter_btn.setStyleSheet("QPushButton{background-color: rgb(0, 170, 127)}")
+                self.Connect_pAmeter_btn.setStyleSheet("QPushButton{background-color: rgb(0, 170, 127);color:rgb(255, 255, 255)}")
                 self._shining_flag=0
         else:
             #self.Connect_pAmeter_btn.setStyleSheet("QPushButton{background-color: rgb(98, 98, 98)}")
@@ -432,7 +449,10 @@ class PMCMotionPlot(QMainWindow, Ui_MainWindow):
     def ini_keithley6514_curr(self,nplc=5,points=10):
         if self.pAmeter_connection:
             self.pAmeter6514.zero_check(status='OFF')
-            self.pAmeter6514.conf_function('current')
+            time.sleep(0.5)
+            #self.pAmeter6514.conf_function('current')
+            self.pAmeter6514.current_nplc(nplc=5)
+            time.sleep(0.5)
             resp = self.pAmeter6514.read_data(wait=100)
             data = self.pAmeter6514.get_value(resp)
             print(f'get value:{data:.4e}A')
@@ -523,7 +543,6 @@ class PMCMotionPlot(QMainWindow, Ui_MainWindow):
             self.Current_label.setText('nA')
         else:
             # < 1nA
-            
             lcd_value=current*1.0e12
             self.Current_label.setText('pA')
         self.lcd_pA.display(lcd_value)
@@ -578,8 +597,10 @@ class PMCMotionPlot(QMainWindow, Ui_MainWindow):
         self.scan_channel=pmc_channels.get(self.Channel_cbx.currentText(),0)
         self.scan_channel_name=self.Channel_cbx.currentText()
         self.Channel_cbx.currentIndexChanged['int'].connect(self.set_scan_channel)
+        self.SPD_cbx.currentIndexChanged['int'].connect(self.set_ch_speedmode)
         self.ch_pos_lcd_dict={'Ch3_X':self.lcd_X_pos,'Ch4_Y':self.lcd_Y_pos,'Ch5_Z':self.lcd_Z_pos}
         self.ch_values_dict={'Ch3_X':0,'Ch4_Y':0,'Ch5_Z':0}
+        self.ch_speedmode={"LSPD":"L","MSPD":"M","HSPD":"H"}
         self.step_X_size=1
         self.step_Y_size=1
         self.step_Z_size=1
@@ -595,12 +616,28 @@ class PMCMotionPlot(QMainWindow, Ui_MainWindow):
         self.X_pos_move_flag=False
         self.Y_pos_move_flag=False
         self.Z_pos_move_flag=False
+        #for pmc motor status
+        self.pmc_status_timer=QTimer() # status timer
+        self.pmc_status_timer.timeout.connect(self.update_pmc_status)
+        self.pmc_shining_flag=0 # for indicate pmc connection
 
 
     @Slot()
     def on_Connect_pmc_btn_clicked(self):
         self.show_PMC_status()
         self.updateall_ch_values()
+
+    @Slot()
+    def update_pmc_status(self):
+        if self.pmc_motor.connect_status:
+            if self.pmc_shining_flag==0:
+                self.Connect_pmc_btn.setStyleSheet("QPushButton{background-color: rgb(0, 255, 127);color:rgb(255, 255, 255)}")
+                self.pmc_shining_flag=1
+            elif self.pmc_shining_flag==1:
+                self.Connect_pmc_btn.setStyleSheet("QPushButton{background-color: rgb(0, 170, 127);color:rgb(255, 255, 255)}")
+                self.pmc_shining_flag=0
+        else:
+            pass
 
     @log_exceptions(log_func=logger.error)
     @Slot(int)
@@ -611,16 +648,19 @@ class PMCMotionPlot(QMainWindow, Ui_MainWindow):
         """
         self.Channel_tabs.setCurrentIndex(n)
         self.scan_channel_name=self.Channel_cbx.currentText()
-        self.scan_channel=pmc_channels.get(self.Channel_cbx.currentText(),1)
+        self.scan_channel=pmc_channels.get(self.Channel_cbx.currentText(),3)
         self._scan_range_set_flag=0
         self.updateall_ch_values()
 
     def updateall_ch_values(self):
         if self.pmc_motor.connect_status:
+            self.pmc_shining_flag=1
             # get value of all 16 channels
             self.update_ch_value('Ch3_X')
             self.update_ch_value('Ch4_Y')
             self.update_ch_value('Ch5_Z')
+            self.pmc_status_timer.start(1000)
+            self.update_ch_SPD()
             
     def update_ch_value(self,ch_name:str):
         """update the ch_name value and plot
@@ -629,12 +669,13 @@ class PMCMotionPlot(QMainWindow, Ui_MainWindow):
             ch_name (str): _description_
         """
         ch_num=pmc_channels.get(ch_name)
-        print(f'update channel:{ch_num} with name:{ch_name}')
+        #print(f'update channel:{ch_num} with name:{ch_name}')
         if isinstance(ch_num,int):
             # get the channel value
             ch_value=self.pmc_motor.get_pos(str(ch_num))
-            if ch_value:
-                self.ch_pos_lcd_dict[ch_name].display(ch_value)
+            if isinstance(ch_value,int):
+                #self.ch_pos_lcd_dict[ch_name].display(ch_value)
+                print(f'update channel:{ch_num} with name:{ch_name} value:{ch_value}')
                 self.ch_values_dict[ch_name]=ch_value
                 self.ch_changeN_dict[ch_name]+=1
                 self.ch_valuelist_dict[ch_name].append(ch_value)
@@ -658,6 +699,34 @@ class PMCMotionPlot(QMainWindow, Ui_MainWindow):
             ch_figure.axes.cla()
             ch_figure.axes.plot(x_num_list, x_pos, '-oc', markersize=1)
             ch_figure.draw()
+
+    # for channel speed mode
+    @Slot(int)
+    def set_ch_speedmode(self,n:int):
+        """set the current channel speedmode[L,M,H]
+
+        Returns:
+            _type_: _description_
+        """
+        print(f'select speed mode:{self.SPD_cbx.currentText()}')
+        selected_ch=pmc_channels.get(self.Channel_cbx.currentText(),3)
+        speed_mode=self.ch_speedmode.get(self.SPD_cbx.currentText())
+        if self.pmc_motor.connect_status:
+            self.pmc_motor.set_SPD(ch=str(selected_ch),mode=speed_mode)
+
+    def update_ch_SPD(self):
+        """update the current ch spd
+
+        Returns:
+            _type_: _description_
+        """
+        SPD_index={"LSPD":0,"MSPD":1,"HSPD":2}
+        selected_ch=pmc_channels.get(self.Channel_cbx.currentText(),3)
+        if self.pmc_motor.connect_status:
+            speed_mode=self.pmc_motor.get_SPD(ch=str(selected_ch))
+            print(f'{self.Channel_cbx.currentText()} speed mode:{speed_mode} ')
+            if speed_mode:
+                self.SPD_cbx.setCurrentIndex(SPD_index.get(speed_mode,0))
 
     # for step size
     @Slot()
@@ -997,6 +1066,8 @@ class PMCMotionPlot(QMainWindow, Ui_MainWindow):
             if self._scan_N < self._scan_list_num:
                 self.scan_start_sig.emit(['OK', self._scan_N])
                 self.set_progress_Bar(int(100*self._scan_N/self._scan_list_num))
+                #update ch value
+                self.update_ch_value(self.scan_channel_name)
             else:
                 print('all position in list have been set')
                 full_data =self.get_full_data()

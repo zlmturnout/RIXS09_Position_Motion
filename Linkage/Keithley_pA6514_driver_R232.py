@@ -1,14 +1,22 @@
+import logging
+import math
+import os
+import re
+import sys
+import time
+import traceback
 from socket import *
-import os, re, sys, time, math, traceback, logging
-from PySide6.QtCore import QTimer, Slot, QThread, Signal, QObject
+from time import sleep
+
 import numpy as np
 import pandas as pd
-from time import sleep
 # from Dependant.Tools_functions import my_logger, creatPath
 #from SCIP_CMD_6517B import *
 import serial
 import serial.tools.list_ports
+from PySide6.QtCore import QObject, QThread, QTimer, Signal, Slot
 from serial import SerialException
+
 
 def my_logger(log_file: str = 'output.log', logger_name: str = 'usr_test'):
     """
@@ -434,24 +442,7 @@ class Keithley6514Com(QThread):
             average_n=3
             while self.run_flag and time.time() - t0 < self.monitor_time:
                 try:
-                    # if self._keep_on == 0:
-                    #     i=0
-                    #     t_start=time.time()
-                    #     while i<average_n:
-                    #         resp = self.read_data(wait=100)
-                    #         data = self.get_value(resp)
-                    #         i+=1
-                    #         sum_current+=data
-                    #     pA_currents=sum_current/average_n
-                    # else:
-                    #     #self.conf_function('current',wait=100)
-                    #     self.msleep(200)
-                    #     resp = self.read_data(wait=100)
-                    #     #print(f'get resp read:{resp}')
-                    #     pA_currents = self.get_value(resp)
-                    #     status = 'error' if pA_currents == 0 else 'OK'
-                    #self.conf_function('current',wait=100)
-                    self.msleep(200)
+                    self.msleep(100)
                     resp = self.read_data(wait=100)
                     #print(f'get resp read:{resp}')
                     pA_currents = self.get_value(resp)
@@ -463,7 +454,7 @@ class Keithley6514Com(QThread):
                 finally:
                     print(f'start emit:{[pA_currents, pA_currents, status]}')
                     self.data_sig.emit([pA_currents,pA_currents, status])
-                    self.msleep(1000)
+                    self.msleep(100)
                 if self._keep_on == 0:
                     self.run_flag = False
 
