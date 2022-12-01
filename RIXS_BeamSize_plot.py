@@ -503,7 +503,7 @@ class PMCMotionPlot(QMainWindow, Ui_MainWindow):
             self.pAmeter_figure.axes.set_ylabel("currents value", fontsize=10, color='m')
             self.pAmeter_figure.draw()
 
-    def lcd_display(self,current:int|float):
+    def lcd_display(self,current:'int|float'):
         """display current by uA, nA or pA
 
         Args:
