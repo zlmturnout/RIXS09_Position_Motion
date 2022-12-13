@@ -1,22 +1,14 @@
-import logging
-import math
-import os
-import re
-import sys
-import time
-import traceback
 from socket import *
-from time import sleep
-
+import os, re, sys, time, math, traceback, logging
+from PySide6.QtCore import QTimer, Slot, QThread, Signal, QObject
 import numpy as np
 import pandas as pd
+from time import sleep
 # from Dependant.Tools_functions import my_logger, creatPath
 #from SCIP_CMD_6517B import *
 import serial
 import serial.tools.list_ports
-from PySide6.QtCore import QObject, QThread, QTimer, Signal, Slot
 from serial import SerialException
-
 
 def my_logger(log_file: str = 'output.log', logger_name: str = 'usr_test'):
     """

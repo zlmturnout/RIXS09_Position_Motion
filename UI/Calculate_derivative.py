@@ -135,9 +135,10 @@ def GaussianFit(x,y,center=1200,info:str='GaussFit'):
     """
     Fit_results={}
     gmodel = Model(gaussian)
-    result = gmodel.fit(y, x=x, amp=4006, cen=center, wid=2.6)
-    #print(result.values)
-    #print(result.fit_report())
+    #result = gmodel.fit(y, x=x, amp=1, cen=center, wid=2.6)
+    result = gmodel.fit(y, x=x,amp=6089573, cen=center, wid=55)
+    print(result.values)
+    print(result.fit_report())
     wid_fit=result.params['wid'].value
     wid_err=result.params['wid'].stderr
     cen_fit=result.params['cen'].value 

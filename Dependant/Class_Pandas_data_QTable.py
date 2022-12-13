@@ -24,7 +24,7 @@ class PandasInQTable(QAbstractTableModel):
                 if isinstance(value,int) or isinstance(value,str):
                     return "%s" % value
                 if isinstance(value,float):
-                    return "%.4f" % value
+                    return "%.8e" % value
                 else:
                     return str(value)
             # set alignment

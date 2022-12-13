@@ -238,11 +238,13 @@ class DataViewPlot(QDialog, Ui_Dialog):
                 self.plot_scan_data(derv_x1, derv_y1, X_axis, '1st deriv by cal')
                 
                 x1_fit=np.array(derv_x1)
-                y1_fit=np.array(derv_y1)
+                y1_fit=np.array(derv_y1)*1e13
                 mid_index1=round(len(x1_fit)/2)
                 x2_fit=np.array(derv_x2)
-                y2_fit=np.array(derv_y2)
+                y2_fit=np.array(derv_y2)*1e13
                 mid_index2=round(len(x2_fit)/2)
+                print(f'y1_fit: {y1_fit}')
+                print(f'y1_fit: {y2_fit}')
                 if np.sum(y1_fit)>0:
                     Fit_result1,FWHM1=GaussianFit(x1_fit,y1_fit,center=x1_fit[mid_index1])
                     Fit_result2,FWHM1=GaussianFit(x2_fit,y2_fit,center=x2_fit[mid_index2])
