@@ -410,6 +410,8 @@ class PMCMotionPlot(QMainWindow, Ui_MainWindow):
                     #self.MT_pAmeter6514.zero_check(status='OFF')
                     time.sleep(0.5)
                     self.pAmeter6514.conf_function('current',wait=500)
+                    time.sleep(1.5)
+                    self.pAmeter6514.current_nplc(5)
                     self.Connect_pAmeter_btn.setEnabled(False)
                     self.Connect_pAmeter_btn.setText("Connected")
                     self.pAmeter_connection = True
@@ -447,7 +449,10 @@ class PMCMotionPlot(QMainWindow, Ui_MainWindow):
     def ini_keithley6514_curr(self,nplc=5,points=10):
         if self.pAmeter_connection:
             self.pAmeter6514.zero_check(status='OFF')
-            self.pAmeter6514.conf_function('current')
+            time.sleep(0.5)
+            #self.pAmeter6514.conf_function('current')
+            self.pAmeter6514.current_nplc(nplc=5)
+            time.sleep(0.5)
             resp = self.pAmeter6514.read_data(wait=100)
             data = self.pAmeter6514.get_value(resp)
             print(f'get value:{data:.4e}A')
