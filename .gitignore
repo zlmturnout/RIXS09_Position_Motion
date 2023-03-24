@@ -18,6 +18,7 @@ UI/__pycache__
 html/
 Database/fund_data/
 UI/*.jpg
+*.jpg
 
 # Distribution / packaging
 .Python

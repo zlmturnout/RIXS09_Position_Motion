@@ -144,14 +144,14 @@ class Keithley6514Com(QThread):
         """
         status_txt='no info'
         try:
-            self.serial.port = port
+            #self.serial.port = port
             self.serial.baudrate = 9600
             self.serial.stopbits = 1
             self.serial.bytesize = 8
             self.serial.parity = 'N'
-            self.serial.open()
+            self.serial.open(port)
         except Exception as e:
-            print(e)
+            print(traceback.format_exc()+str(e))
             status_txt=e
         else:
             status_txt='OK'
@@ -492,33 +492,36 @@ def get_COM_port():
 if __name__ == '__main__':
     COM_Ports:dict=get_COM_port()
     print(COM_Ports)
-    port="COM5"
-    Keithley6514 = Keithley6514Com(port=port, func='currents', points=5,full_time=100)
-    Keithley6514.open_port(port)
+    port="COM6"
+    serial_port=serial.Serial(port)
+    Keithley6514 = Keithley6514Com(port=serial_port, func='currents', points=5,full_time=100)
+    #print(Keithley6514.open_port(port))
+    Keithley6514.clear_status()
+    Keithley6514.reset()
     ID = Keithley6514.deviceID
     version = Keithley6514.version
     print(f'get ID: {ID}\n version:{version}')
-    #Keithley6517B.reset()
-    Keithley6514.clear_status()
-    # Keithley6514.configure_current()
-    # Keithley6517B.current_filter()
-    # Keithley6517B.curr_medianMode(MediaMode=False)
-    # Keithley6517B.current_nplc(nplc=5)
-    # Keithley6517B.curr_aver_counts(num=5)
+    # #Keithley6517B.reset()
+    # Keithley6514.clear_status()
+    # # Keithley6514.configure_current()
+    # # Keithley6517B.current_filter()
+    # # Keithley6517B.curr_medianMode(MediaMode=False)
+    # # Keithley6517B.current_nplc(nplc=5)
+    # # Keithley6517B.curr_aver_counts(num=5)
 
-    Keithley6514.zero_check(status='OFF')
-    Keithley6514.conf_function('current',wait=100)
-    #time.sleep(2)
-    i=10
-    t_start=time.time()
-    while i>0:
-        resp = Keithley6514.read_data(wait=100)
-        # resp = Keithley6517B.fetch(wait=2000)
-        data = Keithley6514.get_value(resp)
-        #Keithley6514.start()
-        #time.sleep(1)
-        i-=1
-        print(f'get value:{data:.4e}A')
-    print(f'cost:{time.time()-t_start:.4f}s')
-    # resp = Keithley6517B.fresh_data()
-    # data = Keithley6517B.get_value(resp)
+    # Keithley6514.zero_check(status='OFF')
+    # Keithley6514.conf_function('current',wait=100)
+    # #time.sleep(2)
+    # i=10
+    # t_start=time.time()
+    # while i>0:
+    #     resp = Keithley6514.read_data(wait=100)
+    #     # resp = Keithley6517B.fetch(wait=2000)
+    #     data = Keithley6514.get_value(resp)
+    #     #Keithley6514.start()
+    #     #time.sleep(1)
+    #     i-=1
+    #     print(f'get value:{data:.4e}A')
+    # print(f'cost:{time.time()-t_start:.4f}s')
+    # # resp = Keithley6517B.fresh_data()
+    # # data = Keithley6517B.get_value(resp)
