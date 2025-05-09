@@ -185,13 +185,13 @@ class PMCMotionPlot(QMainWindow, Ui_MainWindow):
         # open data file
         OpenDATA = QAction('open data(&O)...', self)
         OpenDATA.setIcon(style.standardIcon(QStyle.SP_DialogOpenButton))
-        OpenDATA.setShortcut(Qt.CTRL + Qt.Key_O)
+        #OpenDATA.setShortcut(Qt.CTRL + Qt.Key_O)
         OpenDATA.triggered.connect(self.open_datafile)
         self.menuMenu.addAction(OpenDATA)
         # save data
         SaveDATA = QAction('save data(&S)...', self)
         SaveDATA.setIcon(style.standardIcon(QStyle.SP_DialogSaveButton))
-        SaveDATA.setShortcut(Qt.CTRL + Qt.Key_S)
+        #SaveDATA.setShortcut(Qt.CTRL + Qt.Key_S)
         SaveDATA.triggered.connect(self.save_all_data)
         self.menuMenu.addAction(SaveDATA)
         # show View data in analysis menuBar

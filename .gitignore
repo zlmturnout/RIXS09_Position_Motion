@@ -10,6 +10,7 @@ UI/__pycache__
 #.gitignore
 
 # my ignore file
+*.pdf
 *.log
 *.csv
 *.json

@@ -203,9 +203,10 @@ class pmc_RS232(object):
 
     def get_pos(self,ch:str):
         p = self.cmd_send("PS?"+ch,receive_flag=True)
-        pos=p.split('\r\n')
+        #pos=p.split('\r\n')
+        pos=int(p) if p else None
         print(f'get pos {pos}')
-        return int(pos[0])
+        return pos
         #return int(p) if p else None
 
     def set_pos(self,ch:str,pos):
@@ -281,7 +282,7 @@ class pmcSetThread(QThread):
             self.set_info = f'done with time out:{time_out}'
             while self.set_flag and time.time() - t0 < time_out:
                 new_pos=self.pmc.get_pos(str(self.ch_num))
-                if abs(new_pos-self.target_pos)<1:
+                if new_pos and abs(new_pos-self.target_pos)<1:
                     self.msleep(200)
                     self.set_flag=False
                     self.set_info = 'done'

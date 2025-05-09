@@ -6,6 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
 from scipy.interpolate import Rbf, InterpolatedUnivariateSpline
+#from scipy.differentiate import derivative
 from scipy.misc import derivative
 from scipy.signal import savgol_filter
 from scipy.optimize import curve_fit
